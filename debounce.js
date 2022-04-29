@@ -1,17 +1,21 @@
 // 事件触发之后延迟执行，如果在延迟过程中重新点击，则重新计时，最后只会触发一次
 
-function useDebounce(cb, delay = 300, immediate) {
-  let timer
+let inp = document.querySelector('input')
+inp.oninput = debounce(function () {
+  // 可能出现this指向问题，这里的this 是 window
+  console.log(this)
+}, 500)
+
+const useDebounce = (fn, delay = 300) => {
+  let timer = null
+
   return function () {
-    const ctx = this
-    const arg = arguments
-    const later = function () {
-      timer = null
-      if (!immediate) cb.apply(ctx, args)
+    if (timer) {
+      clearTimeout(timer)
     }
-    let exec = immediate && !timer
-    clearTimeout(timer)
-    timer = setTimeout(later, delay)
-    if (exec) cb.apply(ctx.args)
+    timer = setTimeout(() => {
+      // 这里的this是 input, 通过call改变this指向
+      fn.call(this)
+    }, delay)
   }
 }
