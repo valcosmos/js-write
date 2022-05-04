@@ -7,6 +7,9 @@ class Commitment {
     this.status = Commitment.PENDING
     // resolve 和 reject 都可以传递一个参数，该参数定义为 result
     this.result = null
+
+    this.resolveCallbacks = []
+    this.rejectCallbacks = []
     // func(this.resolve.bind(this), this.reject.bind(this))
     // 判断当生成实例的时候是否有报错
     try {
@@ -20,35 +23,58 @@ class Commitment {
 
   resolve(result) {
     // 执行resolve的时候状态是否为待定，如果是待定 就改为 成功
-    if (this.status === Commitment.PENDING) {
-      this.status = Commitment.FULFILLED
-      this.result = result
-    }
+    setTimeout(() => {
+      if (this.status === Commitment.PENDING) {
+        this.status = Commitment.FULFILLED
+        this.result = result
+
+        this.resolveCallbacks.forEach((cb) => {
+          cb(result)
+        })
+      }
+    })
   }
 
   reject(result) {
     // 执行reject的时候是否为待定，如果是待定 就改为 失败
-    if (this.status === Commitment.PENDING) {
-      this.status = Commitment.REJECTED
-      this.result = result
-    }
+    setTimeout(() => {
+      if (this.status === Commitment.PENDING) {
+        this.status = Commitment.REJECTED
+        this.result = result
+        this.rejectCallbacks.forEach((cb) => {
+          cb(result)
+        })
+      }
+    })
   }
 
   then(onFULFILLED, onREJECTED) {
-    // 如果传递过来的参数 不是一个函数 就将它改为空函数
-    onFULFILLED = typeof onFULFILLED === 'function' ? onFULFILLED : () => {}
-    onREJECTED = typeof onREJECTED === 'function' ? onREJECTED : () => {}
-    if (this.status === Commitment.FULFILLED) {
-      onFULFILLED(this.result)
-    }
-    if (this.status === Commitment.REJECTED) {
-      onREJECTED(this.result)
-    }
+    return new Commitment((resolve, reject) => {
+      // 如果传递过来的参数 不是一个函数 就将它改为空函数
+      onFULFILLED = typeof onFULFILLED === 'function' ? onFULFILLED : () => {}
+      onREJECTED = typeof onREJECTED === 'function' ? onREJECTED : () => {}
+      if (this.status === Commitment.PENDING) {
+        this.resolveCallbacks.push(onFULFILLED)
+        this.rejectCallbacks.push(onREJECTED)
+      }
+      if (this.status === Commitment.FULFILLED) {
+        onFULFILLED(this.result)
+      }
+      if (this.status === Commitment.REJECTED) {
+        onREJECTED(this.result)
+      }
+    })
   }
 }
 
+console.log('1')
+
 let commitment = new Commitment((resolve, reject) => {
-  resolve('这次一定')
+  console.log('2')
+  setTimeout(() => {
+    resolve('这次一定')
+    console.log('4')
+  })
 })
 
 commitment.then(undefined, (err) => console.log(err))
